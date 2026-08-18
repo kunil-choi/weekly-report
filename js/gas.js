@@ -22,6 +22,21 @@ try {
   fbAppV2 = firebase.initializeApp(firebaseConfigV2, 'weekly-report-v2');
 }
 const dbV2 = firebase.database(fbAppV2);
+const authV2 = firebase.auth(fbAppV2);
+
+// ── 익명 로그인 (Firebase DB 규칙이 인증을 요구하므로, 데이터 접근 전 필수) ──
+function ensureAuthV2() {
+  return new Promise(function(resolve, reject) {
+    if (authV2.currentUser) { resolve(authV2.currentUser); return; }
+    var unsubscribe = authV2.onAuthStateChanged(function(user) {
+      unsubscribe();
+      if (user) { resolve(user); return; }
+      authV2.signInAnonymously().then(function(cred) {
+        resolve(cred.user);
+      }).catch(reject);
+    }, reject);
+  });
+}
 
 // ── 날짜 키 헬퍼 ("YYYY-MM-DD") ──
 function toKeyV2(date) {
@@ -82,10 +97,17 @@ function runStep2() {
   addLog('=== 데이터 수집 시작 ===');
 
   // Firebase(일정+메모) + GAS(유튜브) 동시 호출
-  var firebasePromise = Promise.all([
-    dbV2.ref('schedule').once('value'),
-    dbV2.ref('memos').once('value')
-  ]);
+  var firebasePromise = ensureAuthV2()
+    .then(function() {
+      return Promise.all([
+        dbV2.ref('schedule').once('value'),
+        dbV2.ref('memos').once('value')
+      ]);
+    })
+    .catch(function(e) {
+      addLog('Firebase 인증 오류: ' + e.message, 'err');
+      throw e;
+    });
 
   var gasPromise = fetch(GAS_URL + '?action=all')
     .then(function(r) { return r.json(); })
