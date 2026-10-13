@@ -1,24 +1,11 @@
 /* ===== 보고서 제목 자동 생성 ===== */
 function getReportTitle(){
-  var year,month,week;
-  if(S.prevWeekNum){
-    year=S.prevYear;month=S.prevMonth;week=S.prevWeekNum+1;
-    if(week>5){week=1;month++;if(month>12){month=1;year++;}}
-  }else{
-    var d=S.tws||new Date();year=d.getFullYear();month=d.getMonth()+1;week=weekOfMonth(d);
-  }
-  return '머니올라 '+year+'년 '+month+'월 '+week+'주차 보고';
+  var w=reportWeekInfo(S.lws);
+  return '머니올라 '+w.year+'년 '+w.month+'월 '+w.week+'주차 보고';
 }
 function getReportFileName(){
-  var year,month,week;
-  if(S.prevWeekNum){
-    year=S.prevYear;month=S.prevMonth;week=S.prevWeekNum+1;
-    if(week>5){week=1;month++;if(month>12){month=1;year++;}}
-  }else{
-    var d=S.tws||new Date();year=d.getFullYear();month=d.getMonth()+1;week=weekOfMonth(d);
-  }
-  var yy=String(year).slice(-2);
-  return '머니올라_'+yy+'년_'+month+'월_'+week+'주차_보고.docx';
+  var w=reportWeekInfo(S.lws);
+  return '머니올라_'+String(w.year).slice(-2)+'년_'+w.month+'월_'+w.week+'주차_보고.docx';
 }
 
 /* ===== Step 6: 미리보기 ===== */
