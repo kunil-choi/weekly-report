@@ -83,7 +83,7 @@ function buildPreview(){
 
   /* ===== 채널 현황 (이미지와 동일한 가로 8열) ===== */
   h+='<h3>■ 채널 현황 ('+lwRange+')</h3>';
-  h+='<table class="tbl" id="t2"><tr><th></th><th>조회수</th><th>구독자</th><th>예상 수익</th><th>재생 기반 CPM</th><th>RPM</th><th>노출 클릭률</th><th>평균 시청 지속 시간</th></tr>';
+  h+='<table class="tbl" id="t2"><tr><th></th><th>조회수</th><th>구독자</th><th>예상 수익</th><th>재생 기반 CPM</th><th>RPM</th><th>썸네일 클릭률</th><th>평균 시청 지속 시간</th></tr>';
   h+='<tr><td><b>'+lwRange+'</b></td><td contenteditable="true">'+(S.ch.views||'')+'</td><td contenteditable="true">'+(S.ch.subs||'')+'</td><td contenteditable="true">'+(S.ch.rev||'')+'</td><td contenteditable="true">'+(S.ch.cpm||'')+'</td><td contenteditable="true">'+(S.ch.rpm||'')+'</td><td contenteditable="true">'+(S.ch.ctr||'')+'</td><td contenteditable="true">'+(S.ch.avg||'')+'</td></tr>';
   /* 지지난주 날짜 범위 계산 */
   var ppws=new Date(S.lws);ppws.setDate(ppws.getDate()-7);
