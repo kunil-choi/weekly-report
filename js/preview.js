@@ -1,24 +1,11 @@
 /* ===== 보고서 제목 자동 생성 ===== */
 function getReportTitle(){
-  var year,month,week;
-  if(S.prevWeekNum){
-    year=S.prevYear;month=S.prevMonth;week=S.prevWeekNum+1;
-    if(week>5){week=1;month++;if(month>12){month=1;year++;}}
-  }else{
-    var d=S.tws||new Date();year=d.getFullYear();month=d.getMonth()+1;week=weekOfMonth(d);
-  }
-  return '머니올라 '+year+'년 '+month+'월 '+week+'주차 보고';
+  var w=reportWeekInfo(S.lws);
+  return '머니올라 '+w.year+'년 '+w.month+'월 '+w.week+'주차 보고';
 }
 function getReportFileName(){
-  var year,month,week;
-  if(S.prevWeekNum){
-    year=S.prevYear;month=S.prevMonth;week=S.prevWeekNum+1;
-    if(week>5){week=1;month++;if(month>12){month=1;year++;}}
-  }else{
-    var d=S.tws||new Date();year=d.getFullYear();month=d.getMonth()+1;week=weekOfMonth(d);
-  }
-  var yy=String(year).slice(-2);
-  return '머니올라_'+yy+'년_'+month+'월_'+week+'주차_보고.docx';
+  var w=reportWeekInfo(S.lws);
+  return '머니올라_'+String(w.year).slice(-2)+'년_'+w.month+'월_'+w.week+'주차_보고.docx';
 }
 
 /* ===== Step 6: 미리보기 ===== */
@@ -83,7 +70,7 @@ function buildPreview(){
 
   /* ===== 채널 현황 (이미지와 동일한 가로 8열) ===== */
   h+='<h3>■ 채널 현황 ('+lwRange+')</h3>';
-  h+='<table class="tbl" id="t2"><tr><th></th><th>조회수</th><th>구독자</th><th>예상 수익</th><th>재생 기반 CPM</th><th>RPM</th><th>노출 클릭률</th><th>평균 시청 지속 시간</th></tr>';
+  h+='<table class="tbl" id="t2"><tr><th></th><th>조회수</th><th>구독자</th><th>예상 수익</th><th>재생 기반 CPM</th><th>RPM</th><th>썸네일 클릭률</th><th>평균 시청 지속 시간</th></tr>';
   h+='<tr><td><b>'+lwRange+'</b></td><td contenteditable="true">'+(S.ch.views||'')+'</td><td contenteditable="true">'+(S.ch.subs||'')+'</td><td contenteditable="true">'+(S.ch.rev||'')+'</td><td contenteditable="true">'+(S.ch.cpm||'')+'</td><td contenteditable="true">'+(S.ch.rpm||'')+'</td><td contenteditable="true">'+(S.ch.ctr||'')+'</td><td contenteditable="true">'+(S.ch.avg||'')+'</td></tr>';
   /* 지지난주 날짜 범위 계산 */
   var ppws=new Date(S.lws);ppws.setDate(ppws.getDate()-7);

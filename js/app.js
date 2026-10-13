@@ -28,7 +28,7 @@ function calcDates(base){var d=new Date(base);d.setHours(0,0,0,0);var day=d.getD
 function inRange(date,s,e){var t=new Date(date);t.setHours(0,0,0,0);var a=new Date(s);a.setHours(0,0,0,0);var b=new Date(e);b.setHours(0,0,0,0);return t>=a&&t<=b}
 function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
 function daysIn(s,e){var r=[],d=new Date(s);while(d<=e){r.push(new Date(d));d.setDate(d.getDate()+1)}return r}
-function weekOfMonth(d){return Math.ceil(d.getDate()/7)}
+function reportWeekInfo(start){var th=new Date(start);th.setDate(th.getDate()+2);return{year:th.getFullYear(),month:th.getMonth()+1,week:Math.ceil(th.getDate()/7)}}
 
 /* ===== 네비게이션 ===== */
 function go(n){var ps=document.querySelectorAll('.panel');for(var i=0;i<ps.length;i++)ps[i].classList.remove('active');document.getElementById('step'+n).classList.add('active');var inds=document.querySelectorAll('.step-ind');for(var i=0;i<inds.length;i++){var s=parseInt(inds[i].getAttribute('data-s'));inds[i].classList.remove('active','done');if(s<n)inds[i].classList.add('done');if(s===n)inds[i].classList.add('active')}window.scrollTo({top:0,behavior:'smooth'})}
