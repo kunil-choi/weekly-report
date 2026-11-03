@@ -108,6 +108,9 @@ function classifyVideo(v) {
   var t = normKey(v.title);
   if (t.indexOf('경제유튭') > -1 && t.indexOf('10분컷') > -1) return 'cut1';
   if (t.indexOf('증시리포트') > -1 && t.indexOf('10분컷') > -1) return 'cut2';
+  // autoshorts가 업로드 제목 앞에 붙이는 구분 표시
+  if (t.indexOf('[라디올라]') === 0) return 'shR';
+  if (t.indexOf('[머니올라]') === 0) return 'shM';
   if (t.indexOf('[쇼츠]') === 0 || t.indexOf('#shorts') > -1) return 'shU';
   return 'main';
 }
@@ -210,17 +213,14 @@ function runStep2() {
         var lastVids = vids.filter(function(v) { return inRange(v._date, S.lws, S.lwe); });
         lastVids.sort(function(a, b) { return a._date - b._date; });
         S.yt = []; S.cut1 = []; S.cut2 = []; S.shR = []; S.shM = []; S.shU = [];
-        var hasPl = false;
         for (var j = 0; j < lastVids.length; j++) {
-          if (lastVids[j].playlists) hasPl = true;
           var kind = classifyVideo(lastVids[j]);
           (kind === 'main' ? S.yt : S[kind]).push(lastVids[j]);
         }
         addLog('유튜브: 전체 ' + vids.length + '건 / 지난주 ' + lastVids.length + '건 (동영상 ' + S.yt.length +
                ' · 경제유튭10분컷 ' + S.cut1.length + ' · 증시리포트10분컷 ' + S.cut2.length +
                ' · 라디올라 쇼츠 ' + S.shR.length + ' · 머니올라 쇼츠 ' + S.shM.length + ')', 'ok');
-        if (!hasPl) addLog('GAS 응답에 재생목록 정보(playlists)가 없어 쇼츠를 라디올라/머니올라로 나누지 못했습니다. gas/playlist-patch.gs 적용 필요', 'err');
-        if (S.shU.length) addLog('재생목록을 알 수 없는 쇼츠 ' + S.shU.length + '건 (보고서에서 제외됨)', 'err');
+        if (S.shU.length) addLog('[라디올라]/[머니올라] 표시가 없는 쇼츠 ' + S.shU.length + '건 (보고서에서 제외됨)', 'err');
         toast('유튜브 수집 완료', 'success');
       } else {
         S.yt = []; S.cut1 = []; S.cut2 = []; S.shR = []; S.shM = []; S.shU = [];
