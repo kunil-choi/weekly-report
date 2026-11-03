@@ -89,6 +89,61 @@ function convertFirebaseToScheduleRows(cloudSched) {
   return rows;
 }
 
+// ── 영상 분류 (5개 실적 항목) ──
+// 우선순위: GAS가 내려주는 재생목록 이름(v.playlists) → 없으면 제목 규칙
+// main: 기존 유튜브 동영상 / cut1: 못본경제유튭 10분컷 / cut2: 못본증시리포트 10분컷
+// shR: 라디올라_beta 쇼츠 / shM: 머니올라_shorts 쇼츠 / shU: 재생목록을 알 수 없는 쇼츠
+function normKey(s) { return (s || '').replace(/\s+/g, '').toLowerCase(); }
+
+function classifyVideo(v) {
+  var pls = v.playlists || [];
+  if (typeof pls === 'string') pls = [pls];
+  for (var i = 0; i < pls.length; i++) {
+    var p = normKey(pls[i]);
+    if (p.indexOf('라디올라') > -1) return 'shR';
+    if (p.indexOf('머니올라') > -1 && p.indexOf('shorts') > -1) return 'shM';
+    if (p.indexOf('경제유튭') > -1 && p.indexOf('10분컷') > -1) return 'cut1';
+    if (p.indexOf('증시리포트') > -1 && p.indexOf('10분컷') > -1) return 'cut2';
+  }
+  var t = normKey(v.title);
+  if (t.indexOf('경제유튭') > -1 && t.indexOf('10분컷') > -1) return 'cut1';
+  if (t.indexOf('증시리포트') > -1 && t.indexOf('10분컷') > -1) return 'cut2';
+  // autoshorts가 업로드 제목 앞에 붙이는 구분 표시
+  if (t.indexOf('[라디올라]') === 0) return 'shR';
+  if (t.indexOf('[머니올라]') === 0) return 'shM';
+  if (t.indexOf('[쇼츠]') === 0 || t.indexOf('#shorts') > -1) return 'shU';
+  return 'main';
+}
+
+// 영상 목록 표 (날짜 / 제목 / 조회수)
+function videoTableHtml(list) {
+  if (!list || !list.length) return '<p class="ts tm">영상 없음</p>';
+  var h = '<table class="tbl"><tr><th>날짜</th><th>제목</th><th>조회수</th></tr>';
+  for (var i = 0; i < list.length; i++) {
+    var v = list[i];
+    h += '<tr><td>' + fmt(v._date) + '</td><td>' + v.title + '</td><td>' + Number(v.views).toLocaleString() + '</td></tr>';
+  }
+  return h + '</table>';
+}
+
+// 쇼츠 날짜별 조회수 총합 표
+function shortsTableHtml(list) {
+  if (!list || !list.length) return '<p class="ts tm">쇼츠 없음</p>';
+  var byDay = {}, order = [];
+  for (var i = 0; i < list.length; i++) {
+    var k = toKeyV2(list[i]._date);
+    if (!byDay[k]) { byDay[k] = { d: list[i]._date, n: 0, sum: 0 }; order.push(k); }
+    byDay[k].n++;
+    byDay[k].sum += Number(list[i].views) || 0;
+  }
+  var h = '<table class="tbl"><tr><th>날짜</th><th>쇼츠 수</th><th>조회수 합계</th></tr>';
+  for (var j = 0; j < order.length; j++) {
+    var g = byDay[order[j]];
+    h += '<tr><td>' + fmt(g.d) + '</td><td>' + g.n + '</td><td>' + g.sum.toLocaleString() + '</td></tr>';
+  }
+  return h + '</table>';
+}
+
 // ── runStep2 메인 함수 ──
 function runStep2() {
   var st = document.getElementById('s2status');
@@ -155,12 +210,20 @@ function runStep2() {
           vids[i]._date = new Date(vids[i].published);
           vids[i].title = clean(vids[i].title);
         }
-        S.yt = vids.filter(function(v) { return inRange(v._date, S.lws, S.lwe); });
-        S.yt.sort(function(a, b) { return a._date - b._date; });
-        addLog('유튜브: 전체 ' + vids.length + '건 / 지난주 ' + S.yt.length + '건', 'ok');
+        var lastVids = vids.filter(function(v) { return inRange(v._date, S.lws, S.lwe); });
+        lastVids.sort(function(a, b) { return a._date - b._date; });
+        S.yt = []; S.cut1 = []; S.cut2 = []; S.shR = []; S.shM = []; S.shU = [];
+        for (var j = 0; j < lastVids.length; j++) {
+          var kind = classifyVideo(lastVids[j]);
+          (kind === 'main' ? S.yt : S[kind]).push(lastVids[j]);
+        }
+        addLog('유튜브: 전체 ' + vids.length + '건 / 지난주 ' + lastVids.length + '건 (동영상 ' + S.yt.length +
+               ' · 경제유튭10분컷 ' + S.cut1.length + ' · 증시리포트10분컷 ' + S.cut2.length +
+               ' · 라디올라 쇼츠 ' + S.shR.length + ' · 머니올라 쇼츠 ' + S.shM.length + ')', 'ok');
+        if (S.shU.length) addLog('[라디올라]/[머니올라] 표시가 없는 쇼츠 ' + S.shU.length + '건 (보고서에서 제외됨)', 'err');
         toast('유튜브 수집 완료', 'success');
       } else {
-        S.yt = [];
+        S.yt = []; S.cut1 = []; S.cut2 = []; S.shR = []; S.shM = []; S.shU = [];
         addLog('유튜브 데이터 없음', 'err');
       }
 
@@ -178,19 +241,12 @@ function runStep2() {
 
 /* ===== Step 2 렌더링 (V1과 완전히 동일) ===== */
 function renderS2() {
-  /* 유튜브 */
-  var yd = document.getElementById('ytR');
-  if (!S.yt || !S.yt.length) {
-    yd.innerHTML = '<p class="ts tm">영상 없음</p>';
-  } else {
-    var h = '<table class="tbl"><tr><th>날짜</th><th>제목</th><th>조회수</th></tr>';
-    for (var i = 0; i < S.yt.length; i++) {
-      var v = S.yt[i];
-      h += '<tr><td>' + fmt(v._date) + '</td><td>' + v.title + '</td><td>' + Number(v.views).toLocaleString() + '</td></tr>';
-    }
-    h += '</table>';
-    yd.innerHTML = h;
-  }
+  /* 유튜브 (5개 항목) */
+  document.getElementById('ytR').innerHTML = videoTableHtml(S.yt);
+  document.getElementById('cut1R').innerHTML = videoTableHtml(S.cut1);
+  document.getElementById('cut2R').innerHTML = videoTableHtml(S.cut2);
+  document.getElementById('shRR').innerHTML = shortsTableHtml(S.shR);
+  document.getElementById('shMR').innerHTML = shortsTableHtml(S.shM);
 
   /* 지난주 일정: 녹화 + 특이사항만 (업로드 제외) */
   var ld = document.getElementById('schLast');
