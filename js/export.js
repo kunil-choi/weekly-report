@@ -79,14 +79,30 @@ function doGenerateDocx(){
       spacing:{after:200}
     }));
 
-    /* 지난주 실적 (유튜브 업로드 콘텐츠 + 조회수) */
-    var t1a=readTbl('t1a');
-    if(t1a.length){
+    /* 지난주 실적 (5개 항목) */
+    var perf=[
+      ['t1a','유튜브 동영상',[1400,5400,2800]],
+      ['t1c','못본경제유튭 10분컷',[1400,5400,2800]],
+      ['t1d','못본증시리포트 10분컷',[1400,5400,2800]],
+      ['t1e','라디올라_beta (Shorts)',[1400,3000]],
+      ['t1f','머니올라_shorts (Shorts)',[1400,3000]]
+    ];
+    var perfHead=true;
+    for(var pi=0;pi<perf.length;pi++){
+      var pt=readTbl(perf[pi][0]);
+      if(!pt.length) continue;
+      if(perfHead){
+        children.push(new D.Paragraph({
+          children:[new D.TextRun({text:'▸ 지난주 실적 ('+lwRange+')',bold:true,size:22,font:'맑은 고딕',color:'4472C4'})],
+          spacing:{before:200,after:100}
+        }));
+        perfHead=false;
+      }
       children.push(new D.Paragraph({
-        children:[new D.TextRun({text:'▸ 지난주 실적 ('+lwRange+')',bold:true,size:22,font:'맑은 고딕',color:'4472C4'})],
-        spacing:{before:200,after:100}
+        children:[new D.TextRun({text:perf[pi][1],bold:true,size:20,font:'맑은 고딕'})],
+        spacing:{before:120,after:60}
       }));
-      children.push(buildDocTable(D,t1a,[1400,5400,2800],'D9E2F3'));
+      children.push(buildDocTable(D,pt,perf[pi][2],'D9E2F3'));
       children.push(new D.Paragraph({text:'',spacing:{after:120}}));
     }
 

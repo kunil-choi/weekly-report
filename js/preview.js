@@ -19,31 +19,44 @@ function buildPreview(){
 
   /* ===== 지난주 실적: 유튜브 업로드 콘텐츠 + 조회수 ===== */
   h+='<h4 style="color:#818cf8;margin:14px 0 6px">▸ 지난주 실적 ('+lwRange+')</h4>';
-  h+='<table class="tbl" id="t1a"><tr><th>날짜</th><th>유튜브 업로드 콘텐츠</th><th>조회수</th></tr>';
   var lwD=daysIn(S.lws,S.lwe);
+
+  /* 날짜 / 제목 / 조회수 표 (같은 날 여러 건이면 날짜 칸은 첫 행만) */
+  function videoTable(id,label,list){
+    var t='<h5 style="margin:10px 0 4px">'+label+'</h5>';
+    t+='<table class="tbl" id="'+id+'"><tr><th>날짜</th><th>'+(id==='t1a'?'유튜브 업로드 콘텐츠':'제목')+'</th><th>조회수</th></tr>';
     for(var di=0;di<lwD.length;di++){
-    var d=lwD[di];var dateLabel=fmtShort(d)+'('+DK[d.getDay()]+')';
-    var vid=S.yt.filter(function(v){return sameDay(v._date,d)});
-    if(vid.length>1){
+      var d=lwD[di];var dateLabel=fmtShort(d)+'('+DK[d.getDay()]+')';
+      var vid=list.filter(function(v){return sameDay(v._date,d)});
+      if(!vid.length){
+        t+='<tr><td>'+dateLabel+'</td><td contenteditable="true">-</td><td contenteditable="true">-</td></tr>';
+        continue;
+      }
       for(var vi=0;vi<vid.length;vi++){
-        var vTitle=vid[vi].title||'-';
-        var vViews=(Number(vid[vi].views)||0).toLocaleString();
-        if(vi===0){
-          h+='<tr><td>'+dateLabel+'</td><td contenteditable="true">'+vTitle+'</td><td contenteditable="true">'+vViews+'</td></tr>';
-        }else{
-          h+='<tr><td></td><td contenteditable="true">'+vTitle+'</td><td contenteditable="true">'+vViews+'</td></tr>';
-        }
+        t+='<tr><td>'+(vi===0?dateLabel:'')+'</td><td contenteditable="true">'+(vid[vi].title||'-')+'</td><td contenteditable="true">'+(Number(vid[vi].views)||0).toLocaleString()+'</td></tr>';
       }
-    }else{
-      var ytTitle='-', views='-';
-      if(vid.length){
-        ytTitle=vid[0].title||'-';
-        views=(Number(vid[0].views)||0).toLocaleString();
-      }
-      h+='<tr><td>'+dateLabel+'</td><td contenteditable="true">'+ytTitle+'</td><td contenteditable="true">'+views+'</td></tr>';
     }
+    return t+'</table>';
   }
-  h+='</table>';
+
+  /* 쇼츠 표: 날짜별 조회수 총합 */
+  function shortsTable(id,label,list){
+    var t='<h5 style="margin:10px 0 4px">'+label+'</h5>';
+    t+='<table class="tbl" id="'+id+'"><tr><th>날짜</th><th>조회수 총합</th></tr>';
+    for(var di=0;di<lwD.length;di++){
+      var d=lwD[di];var dateLabel=fmtShort(d)+'('+DK[d.getDay()]+')';
+      var vid=list.filter(function(v){return sameDay(v._date,d)});
+      var sum=0;for(var vi=0;vi<vid.length;vi++)sum+=Number(vid[vi].views)||0;
+      t+='<tr><td>'+dateLabel+'</td><td contenteditable="true">'+(vid.length?sum.toLocaleString():'-')+'</td></tr>';
+    }
+    return t+'</table>';
+  }
+
+  h+=videoTable('t1a','유튜브 동영상',S.yt);
+  h+=videoTable('t1c','못본경제유튭 10분컷',S.cut1);
+  h+=videoTable('t1d','못본증시리포트 10분컷',S.cut2);
+  h+=shortsTable('t1e','라디올라_beta (Shorts)',S.shR);
+  h+=shortsTable('t1f','머니올라_shorts (Shorts)',S.shM);
 
   /* ===== 이번주 계획 ===== */
   h+='<h4 style="color:#34d399;margin:14px 0 6px">▸ 이번주 계획 ('+twRange+')</h4>';
