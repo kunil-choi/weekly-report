@@ -90,7 +90,7 @@ function doGenerateDocx(){
     var perfHead=true;
     for(var pi=0;pi<perf.length;pi++){
       var pt=readTbl(perf[pi][0]);
-      if(!pt.length) continue;
+      if(pt.length<2) continue; /* 헤더만 있으면(내용 없음) 생략 */
       if(perfHead){
         children.push(new D.Paragraph({
           children:[new D.TextRun({text:'▸ 지난주 실적 ('+lwRange+')',bold:true,size:22,font:'맑은 고딕',color:'4472C4'})],
@@ -108,7 +108,7 @@ function doGenerateDocx(){
 
     /* 이번주 계획 */
     var t1b=readTbl('t1b');
-    if(t1b.length){
+    if(t1b.length>1){
       children.push(new D.Paragraph({
         children:[new D.TextRun({text:'▸ 이번주 계획 ('+twRange+')',bold:true,size:22,font:'맑은 고딕',color:'00B050'})],
         spacing:{before:200,after:100}

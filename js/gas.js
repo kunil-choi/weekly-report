@@ -108,9 +108,9 @@ function classifyVideo(v) {
   var t = normKey(v.title);
   if (t.indexOf('경제유튭') > -1 && t.indexOf('10분컷') > -1) return 'cut1';
   if (t.indexOf('증시리포트') > -1 && t.indexOf('10분컷') > -1) return 'cut2';
-  // autoshorts가 업로드 제목 앞에 붙이는 구분 표시
-  if (t.indexOf('[라디올라]') === 0) return 'shR';
-  if (t.indexOf('[머니올라]') === 0) return 'shM';
+  // autoshorts가 붙이는 구분 표시. 제목이 "[쇼츠] [라디올라] ..." 처럼 [쇼츠]가 앞에 올 수 있으므로 위치와 무관하게 검사
+  if (t.indexOf('[라디올라]') > -1) return 'shR';
+  if (t.indexOf('[머니올라]') > -1) return 'shM';
   if (t.indexOf('[쇼츠]') === 0 || t.indexOf('#shorts') > -1) return 'shU';
   return 'main';
 }
@@ -212,6 +212,12 @@ function runStep2() {
         }
         var lastVids = vids.filter(function(v) { return inRange(v._date, S.lws, S.lwe); });
         lastVids.sort(function(a, b) { return a._date - b._date; });
+        // GAS가 최근 영상 일부(예: 20건)만 내려주면 지난주 앞부분이 누락되므로 경고
+        if (vids.length) {
+          var oldest = vids.reduce(function(m, v) { return v._date < m ? v._date : m; }, vids[0]._date);
+          if (oldest > S.lws)
+            addLog('⚠ GAS가 받아온 영상 ' + vids.length + '건 중 가장 오래된 영상이 ' + fmt(oldest) + ' 입니다. 지난주 시작(' + fmt(S.lws) + ')부터의 영상이 누락됐을 수 있습니다 (GAS 조회 개수 제한 확인).', 'err');
+        }
         S.yt = []; S.cut1 = []; S.cut2 = []; S.shR = []; S.shM = []; S.shU = [];
         for (var j = 0; j < lastVids.length; j++) {
           var kind = classifyVideo(lastVids[j]);

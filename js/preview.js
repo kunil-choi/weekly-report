@@ -25,31 +25,33 @@ function buildPreview(){
   function videoTable(id,label,list){
     var t='<h5 style="margin:10px 0 4px">'+label+'</h5>';
     t+='<table class="tbl" id="'+id+'"><tr><th>날짜</th><th>'+(id==='t1a'?'유튜브 업로드 콘텐츠':'제목')+'</th><th>조회수</th></tr>';
+    var cnt=0;
     for(var di=0;di<lwD.length;di++){
       var d=lwD[di];var dateLabel=fmtShort(d)+'('+DK[d.getDay()]+')';
       var vid=list.filter(function(v){return sameDay(v._date,d)});
-      if(!vid.length){
-        t+='<tr><td>'+dateLabel+'</td><td contenteditable="true">-</td><td contenteditable="true">-</td></tr>';
-        continue;
-      }
+      if(!vid.length) continue; /* 콘텐츠 없는 날짜는 행 삭제 */
+      cnt+=vid.length;
       for(var vi=0;vi<vid.length;vi++){
         t+='<tr><td>'+(vi===0?dateLabel:'')+'</td><td contenteditable="true">'+(vid[vi].title||'-')+'</td><td contenteditable="true">'+(Number(vid[vi].views)||0).toLocaleString()+'</td></tr>';
       }
     }
-    return t+'</table>';
+    return cnt?t+'</table>':''; /* 하나도 없으면 표 자체를 생략 */
   }
 
   /* 쇼츠 표: 날짜별 조회수 총합 */
   function shortsTable(id,label,list){
     var t='<h5 style="margin:10px 0 4px">'+label+'</h5>';
     t+='<table class="tbl" id="'+id+'"><tr><th>날짜</th><th>조회수 총합</th></tr>';
+    var cnt=0;
     for(var di=0;di<lwD.length;di++){
       var d=lwD[di];var dateLabel=fmtShort(d)+'('+DK[d.getDay()]+')';
       var vid=list.filter(function(v){return sameDay(v._date,d)});
+      if(!vid.length) continue; /* 콘텐츠 없는 날짜는 행 삭제 */
+      cnt++;
       var sum=0;for(var vi=0;vi<vid.length;vi++)sum+=Number(vid[vi].views)||0;
-      t+='<tr><td>'+dateLabel+'</td><td contenteditable="true">'+(vid.length?sum.toLocaleString():'-')+'</td></tr>';
+      t+='<tr><td>'+dateLabel+'</td><td contenteditable="true">'+sum.toLocaleString()+'</td></tr>';
     }
-    return t+'</table>';
+    return cnt?t+'</table>':'';
   }
 
   h+=videoTable('t1a','유튜브 동영상',S.yt);
@@ -60,7 +62,8 @@ function buildPreview(){
 
   /* ===== 이번주 계획 ===== */
   h+='<h4 style="color:#34d399;margin:14px 0 6px">▸ 이번주 계획 ('+twRange+')</h4>';
-  h+='<table class="tbl" id="t1b"><tr><th>날짜</th><th>업로드 및 예정 아이템</th><th>스튜디오 녹화 일정</th><th>특이사항</th></tr>';
+  var planHead='<table class="tbl" id="t1b"><tr><th>날짜</th><th>업로드 및 예정 아이템</th><th>스튜디오 녹화 일정</th><th>특이사항</th></tr>';
+  var planRows='';
   var twD=daysIn(S.tws,S.twe);
   for(var di=0;di<twD.length;di++){
     var d=twD[di];var dateLabel=fmtShort(d)+'('+DK[d.getDay()]+')';
@@ -77,9 +80,10 @@ function buildPreview(){
       record=records.length?records.join(', '):'-';
       noteVal=notes.length?notes.join(', '):'-';
     }
-    h+='<tr><td>'+dateLabel+'</td><td contenteditable="true">'+upload+'</td><td contenteditable="true">'+record+'</td><td contenteditable="true">'+noteVal+'</td></tr>';
+    if(upload==='-'&&record==='-'&&noteVal==='-') continue; /* 내용 없는 날짜는 행 삭제 */
+    planRows+='<tr><td>'+dateLabel+'</td><td contenteditable="true">'+upload+'</td><td contenteditable="true">'+record+'</td><td contenteditable="true">'+noteVal+'</td></tr>';
   }
-  h+='</table>';
+  if(planRows) h+=planHead+planRows+'</table>';
 
   /* ===== 채널 현황 (이미지와 동일한 가로 8열) ===== */
   h+='<h3>■ 채널 현황 ('+lwRange+')</h3>';
