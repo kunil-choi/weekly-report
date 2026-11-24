@@ -109,9 +109,10 @@ function classifyVideo(v) {
   if (t.indexOf('경제유튭') > -1 && t.indexOf('10분컷') > -1) return 'cut1';
   if (t.indexOf('증시리포트') > -1 && t.indexOf('10분컷') > -1) return 'cut2';
   // autoshorts가 업로드 제목 앞에 붙이는 구분 표시
-  if (t.indexOf('[라디올라]') === 0) return 'shR';
-  if (t.indexOf('[머니올라]') === 0) return 'shM';
-  if (t.indexOf('[쇼츠]') === 0 || t.indexOf('#shorts') > -1) return 'shU';
+  // 실제 제목은 "[쇼츠] [라디올라] ..." 처럼 [쇼츠]가 앞에 올 수 있으므로 "포함" 여부로 판단
+  if (t.indexOf('[라디올라]') > -1) return 'shR';
+  if (t.indexOf('[머니올라]') > -1) return 'shM';
+  if (t.indexOf('[쇼츠]') > -1 || t.indexOf('#shorts') > -1) return 'shU';
   return 'main';
 }
 

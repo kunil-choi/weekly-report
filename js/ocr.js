@@ -34,6 +34,59 @@ function fileToBase64(file, callback){
   reader.readAsDataURL(file);
 }
 
+/* ===== 모델 자동 선택 (모델이 종료/변경돼도 동작하도록) =====
+   1) 알려진 모델을 순서대로 시도 → 2) 전부 "모델 없음"이면 ListModels로 flash 계열 자동 탐색 */
+var GEMINI_MODELS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+var GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/';
+
+function geminiPost(model, key, body){
+  return fetch(GEMINI_BASE + 'models/' + model + ':generateContent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify(body)
+  }).then(function(r){
+    if(r.ok) return r.json();
+    return r.text().then(function(t){
+      var e = new Error('Gemini API 오류 (' + r.status + ', ' + model + '): ' + t.slice(0, 300));
+      e.status = r.status;
+      throw e;
+    });
+  });
+}
+
+function findFlashModels(key){
+  return fetch(GEMINI_BASE + 'models?pageSize=200', { headers: { 'x-goog-api-key': key } })
+    .then(function(r){ return r.ok ? r.json() : { models: [] }; })
+    .then(function(d){
+      return (d.models || []).filter(function(m){
+        return /flash/i.test(m.name) && !/lite|image|tts|live|audio|thinking|exp/i.test(m.name) &&
+               (m.supportedGenerationMethods || []).indexOf('generateContent') > -1;
+      }).map(function(m){ return m.name.replace('models/', ''); }).reverse();
+    }).catch(function(){ return []; });
+}
+
+function callGeminiWithFallback(key, body){
+  var tried = [];
+  function attempt(list){
+    if(!list.length) return Promise.reject(new Error('사용 가능한 Gemini 모델을 찾지 못했습니다 (시도: ' + tried.join(', ') + ')'));
+    var model = list[0];
+    tried.push(model);
+    return geminiPost(model, key, body).catch(function(err){
+      // 모델 없음(404) / 과부하(503) / 해당 모델 한도 초과(429)면 다음 모델 시도, 그 외(키 오류 등)는 즉시 실패
+      if([404, 429, 503].indexOf(err.status) > -1) return attempt(list.slice(1));
+      throw err;
+    });
+  }
+  return attempt(GEMINI_MODELS).catch(function(err){
+    if(err.status !== 404 && !/찾지 못했습니다/.test(err.message)) throw err;
+    return findFlashModels(key).then(function(found){
+      found = found.filter(function(m){ return tried.indexOf(m) === -1; });
+      if(!found.length) throw err;
+      return attempt(found);
+    });
+  });
+}
+
 /* ===== Gemini Vision API 호출 ===== */
 function callGemini(base64, mimeType, prompt, statusElId, callback){
   var key = getGeminiKey();
@@ -47,8 +100,6 @@ function callGemini(base64, mimeType, prompt, statusElId, callback){
   var statusEl = document.getElementById(statusElId);
   if(statusEl){ statusEl.textContent = '🤖 Gemini AI 분석 중...'; statusEl.style.color = '#fbbf24'; }
 
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key;
-
   var body = {
     contents: [{
       parts: [
@@ -61,22 +112,20 @@ function callGemini(base64, mimeType, prompt, statusElId, callback){
     }
   };
 
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  })
-  .then(function(r){
-    if(!r.ok) return r.text().then(function(t){ throw new Error('Gemini API 오류 ('+r.status+'): '+t); });
-    return r.json();
-  })
+  callGeminiWithFallback(key, body)
   .then(function(data){
     console.log('Gemini raw response:', JSON.stringify(data));
     var text = '';
     try{
-      text = data.candidates[0].content.parts[0].text;
+      // 생각(thought) 파트는 제외하고 텍스트 파트만 이어 붙임
+      text = data.candidates[0].content.parts
+        .filter(function(p){ return !p.thought && typeof p.text === 'string'; })
+        .map(function(p){ return p.text; }).join('');
+      if(!text) throw new Error('empty');
     }catch(e){
-      throw new Error('응답 파싱 실패: ' + JSON.stringify(data));
+      var why = (data.promptFeedback && data.promptFeedback.blockReason) ||
+                (data.candidates && data.candidates[0] && data.candidates[0].finishReason) || '';
+      throw new Error('응답 파싱 실패' + (why ? ' (' + why + ')' : '') + ': ' + JSON.stringify(data).slice(0, 300));
     }
     console.log('Gemini text:', text);
 
